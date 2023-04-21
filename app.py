@@ -14,7 +14,7 @@ def get_values():
 
 @st.cache_data()
 def get_pdf(mu, sigma):
-    x = np.linspace(mu-4*sigma, mu+4*sigma, 100)
+    x = np.linspace(mu-4*sigma, mu+4*sigma, 50)
     pdf = norm.pdf(x, mu, sigma)
     return x, pdf
 
@@ -91,30 +91,50 @@ def plot_figure_init():
     #--- x axis ---#
     pdf_x, = ax_x.plot([],[], color='tab:blue')
 
+    uxx, = ax_x.plot([],[], linestyle='solid', color = 'tab:blue', lw=1, label = '$m_x$')
+    uxx_m, = ax_x.plot([],[], linestyle='--', color = 'tab:blue', lw=1, label = '$m_x\pm s_x$')
+    uxx_p, = ax_x.plot([],[], linestyle='--', color = 'tab:blue', lw=1)
+
+    ax_x.legend(handles=[uxx, uxx_m])
+
+
     #--- y axis ---#
     pdf_y, = ax_y.plot([],[], color='tab:red')
 
+    uyy, = ax_y.plot([],[], linestyle='solid', color = 'tab:red', lw=1, label = '$m_y$')
+    uyy_m, = ax_y.plot([],[], linestyle='--', color = 'tab:red', lw=1, label = '$m_y\pm s_y$')
+    uyy_p, = ax_y.plot([],[], linestyle='--', color = 'tab:red', lw=1)
+
+    ax_y.legend(handles=[uyy, uyy_m])
+
+    #--- COLLECT GRAPH OBJECTS ---#
+
     axes = [ax, ax_x, ax_y]
     vlines = [ux, ux_m, ux_p, uy, uy_m, uy_p]
+    vplines = [uxx, uxx_m, uxx_p, uyy, uyy_m, uyy_p]
     curves = [tay, pdf_x, pdf_y]
 
-    return fig, axes, vlines, curves
+    return fig, axes, vlines, vplines, curves
 
-def plot_figure_update(mu, sigma, axes, vlines, curves):
+def plot_figure_update(mu, sigma, axes, vlines, vplines, curves):
 
     # unpack variables 
     ax, ax_x, ax_y = axes
     ux, ux_m, ux_p, uy, uy_m, uy_p = vlines
+    uxx, uxx_m, uxx_p, uyy, uyy_m, uyy_p = vplines
     tay, pdf_x, pdf_y = curves
 
     # obtain values
     x, a, x_min, x_max, y_min, y_max = get_values()
 
+    pdf_x_max = 1/np.sqrt(2*np.pi*sigma**2)
+    pdf_y_max = 1/np.sqrt(2*np.pi*sigma_y(mu, sigma, a)**2)
+
     # set y_lim ax_x
-    ax_x.set_ylim(1.2/np.sqrt(2*np.pi*sigma**2), 0)
+    ax_x.set_ylim(1.2 * pdf_x_max, 0)
 
     # set x_lim ax_y
-    ax_y.set_xlim(1.2/np.sqrt(2*np.pi*sigma_y(mu, sigma, a)**2), 0)
+    ax_y.set_xlim(1.2 * pdf_y_max, 0)
 
     # plot taylor expansion x,ft(x, mu, a)
     tay.set_data(x,ft(x, mu, a))
@@ -127,56 +147,28 @@ def plot_figure_update(mu, sigma, axes, vlines, curves):
     XX, YY = get_pdf(f(mu,a), sigma_y(mu, sigma, a))
     pdf_y.set_data(YY,XX)
 
-    # vertical lines
+    # vertical lines main axis
     ux.set_data([mu, mu], [y_min, ft(mu, mu, a)])
     ux_m.set_data([mu-sigma, mu-sigma], [y_min, ft(mu-sigma, mu, a)])
     ux_p.set_data([mu+sigma, mu+sigma], [y_min, ft(mu+sigma, mu, a)])
 
-    # horizontal lines 
+    # horizontal lines main axis
     uy.set_data([x_min, mu], [ft(mu, mu, a), ft(mu, mu, a)])
     uy_m.set_data([x_min, mu-sigma], [ft(mu-sigma, mu, a), ft(mu-sigma, mu, a)])
     uy_p.set_data([x_min, mu+sigma], [ft(mu+sigma, mu, a), ft(mu+sigma, mu, a)])
 
-def plotly_test_section():
-    # Create figure
-    fig = go.Figure()
+    # vertical lines x axis
+    uxx.set_data([mu, mu], [0, pdf_x_max])
+    uxx_m.set_data([mu-sigma, mu-sigma], [0, 0.6065*pdf_x_max])
+    uxx_p.set_data([mu+sigma, mu+sigma], [0, 0.6065*pdf_x_max])
 
-    # Add traces, one for each slider step
-    for step in np.arange(0, 5, 0.1):
-        fig.add_trace(
-            go.Scatter(
-                visible=False,
-                line=dict(color="#00CED1", width=6),
-                name="𝜈 = " + str(step),
-                x=np.arange(0, 10, 0.001),
-                y=np.sin(step * np.arange(0, 10, 0.01))))
+    # vertical lines x axis
+    uyy.set_data([0, pdf_y_max], [ft(mu, mu, a), ft(mu, mu, a)])
+    uyy_m.set_data([0, 0.6065*pdf_y_max], [ft(mu-sigma, mu, a), ft(mu-sigma, mu, a)])
+    uyy_p.set_data([0, 0.6065*pdf_y_max], [ft(mu+sigma, mu, a), ft(mu+sigma, mu, a)])
+  
 
-    # Make 10th trace visible
-    fig.data[10].visible = True
 
-    # Create and add slider
-    steps = []
-    for i in range(len(fig.data)):
-        step = dict(
-            method="update",
-            args=[{"visible": [False] * len(fig.data)},
-                {"title": "Slider switched to step: " + str(i)}],  # layout attribute
-        )
-        step["args"][0]["visible"][i] = True  # Toggle i'th trace to "visible"
-        steps.append(step)
-
-    sliders = [dict(
-        active=10,
-        currentvalue={"prefix": "Frequency: "},
-        pad={"t": 50},
-        steps=steps
-    )]
-
-    fig.update_layout(
-        sliders=sliders
-    )
-
-    return fig
 
 
 def run(): 
@@ -186,22 +178,26 @@ def run():
     # # Some LaTeX text $y\equiv f(x)$
     # # """)
 
-    mu = st.slider(
-        "mu", value=float(5), min_value=float(1), max_value=float(7), step=float(0.1)
-    )
-    sigma = st.slider(
-        "sigma",
-        value=float(0.3),
-        min_value=float(0.1),
-        max_value=float(0.5),
-        step=float(0.05),
-    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        mu = st.slider(
+            "mean estimate $m_x$", value=float(5), min_value=float(1), max_value=float(7), step=float(0.1)
+        )
+    with col2: 
+        sigma = st.slider(
+            "error estimate $s_x$",
+            value=float(0.3),
+            min_value=float(0.1),
+            max_value=float(0.5),
+            step=float(0.05),
+        )
 
     # y = get_pdf(x, mu, sigma)
     
-    fig, axes, vlines, curves = plot_figure_init()
+    fig, axes, vlines, vplines, curves = plot_figure_init()
     
-    plot_figure_update(mu, sigma, axes, vlines, curves)
+    plot_figure_update(mu, sigma, axes, vlines, vplines, curves)
 
     st.pyplot(fig)
     # # fig = plotly_test_section()
