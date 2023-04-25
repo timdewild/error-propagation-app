@@ -73,10 +73,12 @@ def plot_figure_init():
     #--- main axis ---#
 
     # f(x)
-    ax.plot(x,f(x,a), c = 'k')
+    ax.plot(x,f(x,a), c = 'k', label='$f(x)$')
 
     # plot taylor expansion f(x)
-    tay, = ax.plot([],[], c='darkgrey', linestyle='dotted')
+    tay, = ax.plot([],[], c='darkgrey', linestyle='solid', label='tangent line $f_1(x)$')
+
+    ax.legend()
 
     # vertical lines 
     ux, = ax.plot([],[], linestyle='solid', color = 'tab:blue', lw=1)
@@ -91,8 +93,8 @@ def plot_figure_init():
     #--- x axis ---#
     pdf_x, = ax_x.plot([],[], color='tab:blue')
 
-    uxx, = ax_x.plot([],[], linestyle='solid', color = 'tab:blue', lw=1, label = '$m_x$')
-    uxx_m, = ax_x.plot([],[], linestyle='--', color = 'tab:blue', lw=1, label = '$m_x\pm s_x$')
+    uxx, = ax_x.plot([],[], linestyle='solid', color = 'tab:blue', lw=1, label = '$x^\prime$')
+    uxx_m, = ax_x.plot([],[], linestyle='--', color = 'tab:blue', lw=1, label = '$x^\prime\pm \Delta x$')
     uxx_p, = ax_x.plot([],[], linestyle='--', color = 'tab:blue', lw=1)
 
     ax_x.legend(handles=[uxx, uxx_m])
@@ -101,8 +103,8 @@ def plot_figure_init():
     #--- y axis ---#
     pdf_y, = ax_y.plot([],[], color='tab:red')
 
-    uyy, = ax_y.plot([],[], linestyle='solid', color = 'tab:red', lw=1, label = '$m_y$')
-    uyy_m, = ax_y.plot([],[], linestyle='--', color = 'tab:red', lw=1, label = '$m_y\pm s_y$')
+    uyy, = ax_y.plot([],[], linestyle='solid', color = 'tab:red', lw=1, label = '$y^\prime$')
+    uyy_m, = ax_y.plot([],[], linestyle='--', color = 'tab:red', lw=1, label = '$y^\prime\pm \Delta y$')
     uyy_p, = ax_y.plot([],[], linestyle='--', color = 'tab:red', lw=1)
 
     ax_y.legend(handles=[uyy, uyy_m])
@@ -141,11 +143,14 @@ def plot_figure_update(mu, sigma, axes, vlines, vplines, curves):
 
     # x axis pdf
     X, Y = get_pdf(mu,sigma)
-    pdf_x.set_data(X,Y)
+    #pdf_x.set_data(X,Y)
+    ax_x.fill_between(X,Y, color='tab:blue', alpha = 0.3)
 
     # y axis pdf
     XX, YY = get_pdf(f(mu,a), sigma_y(mu, sigma, a))
-    pdf_y.set_data(YY,XX)
+    #pdf_y.set_data(YY,XX)
+    ax_y.fill_between(YY,XX, color='tab:red', alpha = 0.3)
+
 
     # vertical lines main axis
     ux.set_data([mu, mu], [y_min, ft(mu, mu, a)])
@@ -172,49 +177,96 @@ def plot_figure_update(mu, sigma, axes, vlines, vplines, curves):
 
 
 def run(): 
-    # # x, a = get_values()
 
-    # # st.write("""
-    # # Some LaTeX text $y\equiv f(x)$
-    # # """)
-
-    col1, col2 = st.columns(2)
-
-    with col1:
+    with st.sidebar:
+        st.write("""
+            # Control Panel
+            ### Input Parameters
+            Specify the measured value and its error here.
+        """)
         mu = st.slider(
-            "mean estimate $m_x$", value=float(5), min_value=float(1), max_value=float(7), step=float(0.1)
+            "$x^\prime$", 
+            value=float(5), 
+            min_value=float(1), 
+            max_value=float(7), 
+            step=float(0.1)
         )
-    with col2: 
+
         sigma = st.slider(
-            "error estimate $s_x$",
+            "$\Delta x$",
             value=float(0.3),
             min_value=float(0.1),
             max_value=float(0.5),
             step=float(0.05),
         )
+        st.write("""
+            ### Function
+            The function $f$ used in this example is:
 
-    # y = get_pdf(x, mu, sigma)
-    
+            $$
+            f(x) = 1 - e^{-x/2}.
+            $$ 
+        """)
+
+        st.write("""
+            ### Output Parameters
+            The derived value and its error are:
+        """)
+        st.write(f"$y^\prime = {round(f(mu,0.5),3)}$")
+        st.write(f"$\Delta y = {round(sigma_y(mu,sigma,0.5),3)}$")
+
     fig, axes, vlines, vplines, curves = plot_figure_init()
     
     plot_figure_update(mu, sigma, axes, vlines, vplines, curves)
-
+  
     st.pyplot(fig)
-    # # fig = plotly_test_section()
-    # # st.plotly_chart(fig)
-
-    # a = st.slider(
-    #     "a", value=float(1), min_value=float(1), max_value=float(3), step=float(0.5)
-    #     )
-
-    # x = np.linspace(0,2,50)
-
-    # fig = go.Figure(data=go.Scatter(x=x, y=a*x))
-    # fig.update_layout(yaxis_range=[0,6])
-
-    # st.plotly_chart(fig)
     
-    
+    st.title('Error Propagation')
+    st.write("""
+        ### Introduction
+        In experiments, the quantity you measure is often not the final quantity that you want to determine. Instead, the latter is related to the former via a function (which is for instance a physical law). 
+        The measured qauntity comes with a measurement error, but how does this error *propagate* into the final quantity? 
 
+        More concretely, suppose the quantity $y$ is related to the measured quantity $x$ via $y=f(x)$. Let the measured value of $x$ be denoted by $x'$ and its error by $\Delta x$, what is the error $\Delta y$ in the derived quantity $y'=f(x')$?
+
+        You know the answer: if $\Delta x \ll x'$, we can approximate the error in $y'$ as:
+
+        $$
+        \Delta y \simeq \\frac{df}{dx}\\bigg\\vert_{x'}\;\Delta x,
+        $$
+
+        where the notation indicates the derivative has to be evaluated at $x=x'$. In the lecture notes (section 2.1), this result is derived using the discretized definition of the derivative. In this application, we wish to provide a graphical interpretation of this result. 
+
+        ### Animation Setup
+        We assume that the (limiting) distribution of the measured quantity $x$ is normal, centered around the measured value $x^\prime$ with standard deviation equal to the measurement error $\Delta x$.
+        This distribution is shown in light blue in the bottom panel.
+
+        Now, we would like to know how the distribution of the measured quantity, $x$, *propagates* through the function $f(x)$ to produce the distribution of $y$. If the function $f$ is non-linear, finding the distribution of $y$ can be very complex. Therefore, we use the following simplified approach:
+
+        1. We construct a straight line tangent to $f$ at $x'$, see the gray line in the central panel. Mathematically, this line corresponds to the first order Taylor expansion $f_1$ (evaluated at $x^\prime$):
+
+        $$
+        f_1(x) = f(x') + \\frac{df}{dx}\\bigg\\vert_{x'} \\times (x-x^\prime).
+        $$
+
+        2. Using this tangent line, we can now graphically determine the values $y'\pm \Delta y$, as indicated by the thin dashed lines. Mathematically, this corresponds to evaluating $y'\pm \Delta y$ using the first order Taylor expansion. 
+        For example:
+
+        $$
+        y'+\Delta y \simeq f_1(x'+\Delta x) = f(x') + \\frac{df}{dx}\\bigg\\vert_{x'} \Delta x.
+        $$
+
+        3. The error $\Delta y$ is equal to the vertical separation between the red dashed lines corresponding to $y'\pm \Delta y$ and the red solid line corresponding to $y'$. Mathematically, we can use $y'=f(x')$ in the previous equation to obtain: 
+
+        $$
+        \Delta y \simeq \\frac{df}{dx}\\bigg\\vert_{x'}\;\Delta x. 
+        $$
+
+        4. We make the simplifying approximation that the distribution of $y$ is also normal, centered around $y'$ with standard deviation equal to $\Delta y$. This distribution is shown in light red to the left of the central panel. 
+       
+
+    """)
+
+    
 
 run()
