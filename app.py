@@ -2,7 +2,12 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+from PIL import Image
 
+
+@st.cache_data()
+def load_image():
+    return Image.open('slope_error.jpg')
 
 @st.cache_data()
 def get_values():
@@ -76,7 +81,7 @@ def plot_figure_init():
     ax.plot(x,f(x,a), c = 'k', label='$f(x)$')
 
     # plot taylor expansion f(x)
-    tay, = ax.plot([],[], c='darkgrey', linestyle='solid', label='tangent line $f_1(x)$')
+    tay, = ax.plot([],[], c='darkgrey', linestyle='solid', label='tangent at $x^\prime$')
 
     ax.legend()
 
@@ -181,6 +186,7 @@ def run():
     with st.sidebar:
         st.write("""
             # Control Panel
+            ---
             ### Input Parameters
             Specify the measured value and its error here.
         """)
@@ -200,6 +206,7 @@ def run():
             step=float(0.05),
         )
         st.write("""
+            ---
             ### Function
             The function $f$ used in this example is:
 
@@ -218,55 +225,101 @@ def run():
     fig, axes, vlines, vplines, curves = plot_figure_init()
     
     plot_figure_update(mu, sigma, axes, vlines, vplines, curves)
-  
-    st.pyplot(fig)
     
     st.title('Error Propagation')
-    st.write("""
-        ### Introduction
-        In experiments, the quantity you measure is often not the final quantity that you want to determine. Instead, the latter is related to the former via a function (which is for instance a physical law). 
-        The measured qauntity comes with a measurement error, but how does this error *propagate* into the final quantity? 
+    st.pyplot(fig)
 
-        More concretely, suppose the quantity $y$ is related to the measured quantity $x$ via $y=f(x)$. Let the measured value of $x$ be denoted by $x'$ and its error by $\Delta x$, what is the error $\Delta y$ in the derived quantity $y'=f(x')$?
+    image = load_image()
+    
+    intro_hd =st.expander('Introduction')
+    anim_desc = st.expander('Animation Description')
+    anim_feat = st.expander('Animation Features')
 
-        You know the answer: if $\Delta x \ll x'$, we can approximate the error in $y'$ as:
+    with intro_hd:
+        st.write("""
+            ### Introduction
+            In experiments, the quantity you measure is often not the final quantity that you want to determine. Instead, the latter is related to the former via a function (which is for instance a physical law). 
+            The measured qauntity comes with a measurement error, but how does this error *propagate* into the final quantity? 
 
-        $$
-        \Delta y \simeq \\frac{df}{dx}\\bigg\\vert_{x'}\;\Delta x,
-        $$
+            More concretely, suppose the quantity $y$ is related to the measured quantity $x$ via $y=f(x)$. Let the measured value of $x$ be denoted by $x'$ and its error by $\Delta x$, what is the error $\Delta y$ in the derived quantity $y'=f(x')$?
 
-        where the notation indicates the derivative has to be evaluated at $x=x'$. In the lecture notes (section 2.1), this result is derived using the discretized definition of the derivative. In this application, we wish to provide a graphical interpretation of this result. 
+            You know the answer: if $\Delta x \ll x'$, we can approximate the error in $y'$ as:
 
-        ### Animation Setup
-        We assume that the (limiting) distribution of the measured quantity $x$ is normal, centered around the measured value $x^\prime$ with standard deviation equal to the measurement error $\Delta x$.
-        This distribution is shown in light blue in the bottom panel.
+            $$
+            \Delta y \simeq \\frac{df}{dx}\\bigg\\vert_{x'}\;\Delta x,
+            $$
 
-        Now, we would like to know how the distribution of the measured quantity, $x$, *propagates* through the function $f(x)$ to produce the distribution of $y$. If the function $f$ is non-linear, finding the distribution of $y$ can be very complex. Therefore, we use the following simplified approach:
+            where the notation indicates the derivative has to be evaluated at $x=x'$. In the lecture notes (section 2.1), this result is derived using the discretized definition of the derivative. In this application, we wish to provide a graphical interpretation of this result. 
+        """)
 
-        1. We construct a straight line tangent to $f$ at $x'$, see the gray line in the central panel. Mathematically, this line corresponds to the first order Taylor expansion $f_1$ (evaluated at $x^\prime$):
+    with anim_desc:
+        st.write("""
+            ### Animation Description
+            We assume that the (limiting) distribution of the measured quantity $x$ is normal, centered around the measured value $x^\prime$ with standard deviation equal to the measurement error $\Delta x$.
+            This distribution is shown in light blue in the bottom panel. 
+            
+            Now, we are interested in how the error $\Delta x$ *propagates* to the error $\Delta y$ in quantity $y$, which is related to $x$ via the function $f$ (black curve).
+            More generally, we are interested in how the distribution of $x$ *propagates* through the function to produce the distribution of $y$. 
+            From a strict mathematical viewpoint, this is not a trivial task: if the function is highly non-linear, the resulting distribution for $y$ will be very distorted and assymetric. 
+            
+            To simplify, we assume that the function is only mildy non-linear. More precisely, we assume that the function is well-approximated by the tangent at $x'$ (gray line), at least in its vicinity. The distribution of $y$ will then be centered around the value:
 
-        $$
-        f_1(x) = f(x') + \\frac{df}{dx}\\bigg\\vert_{x'} \\times (x-x^\prime).
-        $$
+            $$
+            y'=f(x'). 
+            $$ 
 
-        2. Using this tangent line, we can now graphically determine the values $y'\pm \Delta y$, as indicated by the thin dashed lines. Mathematically, this corresponds to evaluating $y'\pm \Delta y$ using the first order Taylor expansion. 
-        For example:
+            To find the error $\Delta y$, we draw vertical blue dashed lines located at $x=x'\pm \Delta x$. The locations where they intersect with the tangent correspond to $y=y'\pm \Delta y$, indicated by the horizontal red dashed lines. 
+            See also the schematic illustraton below.
 
-        $$
-        y'+\Delta y \simeq f_1(x'+\Delta x) = f(x') + \\frac{df}{dx}\\bigg\\vert_{x'} \Delta x.
-        $$
+        """
+        )
+        col1, col2, col3 = st.columns([1,1.5,1])
+        with col2: st.image(image, caption='Schematic Illustration')
 
-        3. The error $\Delta y$ is equal to the vertical separation between the red dashed lines corresponding to $y'\pm \Delta y$ and the red solid line corresponding to $y'$. Mathematically, we can use $y'=f(x')$ in the previous equation to obtain: 
+        st.write("""
+            Using the schematic, we find that the error $\Delta y$ can be approximated by multiplying the slope of tangent line with the error $\Delta x$. Note that, by construction, the slope of the tangent is equal to the derivative of $f$ at $x'$. In other words, we recover the relation:
 
-        $$
-        \Delta y \simeq \\frac{df}{dx}\\bigg\\vert_{x'}\;\Delta x. 
-        $$
+            $$
+            \Delta y \simeq \\frac{df}{dx}\\bigg\\vert_{x'}\;\Delta x.
+            $$
 
-        4. We make the simplifying approximation that the distribution of $y$ is also normal, centered around $y'$ with standard deviation equal to $\Delta y$. This distribution is shown in light red to the left of the central panel. 
-       
+            Finally, the distribution for $y$ simply becomes a Gaussian centered around $y'$ with standard deviation $\Delta y$. This distribution is shown in light red in the left panel. 
 
-    """)
+        """)
+
+
+    with anim_feat:
+        st.write("""
+            ### Animation Features
+            Using the sidebar you can interact with the animation, by setting the measured value $x'$ and the associated error $\Delta x$. 
+            The animation will update and the resulting value $y'$ and its error are displayed in the side panel. In the animation, we have chosen the function:
+
+            $$
+            f(x) = 1 - e^{-x/2},
+            $$
+
+            which starts out steep and flattens out for larger $x$ values. 
+
+            ##### Key Aspects
+            Two key aspects to take home from the animation are:
+            1. Obviously, the larger the error in the measured value, the larger the error in the final quantity: $\Delta y \propto \Delta x$. 
+            2. Note that the derivative of $f$, i.e. the *slope* of the tangent, plays a subtle role. The larger the slope, the larger $\Delta y$. 
+
+            The second aspect deserves some more explanation. 
+            In regions where the function is steep, a small change in the measured value corresponds to a relatively large change in the calculated value. Check this behavior by decreasing $x'$. 
+            On the other hand, where the function is flat, a small change in the measured value has virtually no effect on the calculated value, resulting in a small error. 
+
+            ##### Limitations
+            Note that the approach we took to calculate the error in $y$ (or more generally its distribution) relies on the assumption that the tangent describes the function sufficiently well. 
+            For wildly varying functions, such as oscillatory functions, this assumption breaks down and our results become inaccurate. 
+
+            
+             
+
+        """)
 
     
 
 run()
+
+# where the function is steep, a small change in the measured value corresponds to a relatively large change in the calculated value. On the other hand, in regions where the function is flat, a change in the measured value has virtually no effect on the calculated value, and its error will be very small.  
