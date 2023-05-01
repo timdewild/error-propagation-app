@@ -314,14 +314,6 @@ def run():
             ##### Limitations
             Note that the approach we took to calculate the error in $y$ (or more generally its distribution) relies on the assumption that the tangent describes the function sufficiently well. 
             For wildly varying functions, such as oscillatory functions, this assumption breaks down and our results become inaccurate. 
-
-            
-             
-
-        """)
-
-    
+        """)    
 
 run()
-
-# where the function is steep, a small change in the measured value corresponds to a relatively large change in the calculated value. On the other hand, in regions where the function is flat, a change in the measured value has virtually no effect on the calculated value, and its error will be very small.  
