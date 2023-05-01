@@ -1,3 +1,5 @@
+# Written by Tim de Wild, April 2023, University of Groningen, the Netherlands
+
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
